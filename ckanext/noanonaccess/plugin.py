@@ -6,6 +6,7 @@ from flask import current_app
 import ckan.plugins as plugins
 from ckan.plugins import toolkit as tk
 from ckan.plugins.toolkit import config
+import ckan.lib.helpers as h
 
 log = logging.getLogger(__name__)
 
@@ -162,6 +163,7 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
             if re.match(path, current_path):
                 restricted_access = False
                 break
-
+        
         if is_anonoumous_user and restricted_access:
+            h.flash_error("Debug current path: " + current_path)
             return tk.redirect_to("https://ckan-udpkatalog-dev.apps.capk.muenchen.de/user/sso", came_from=current_path)
