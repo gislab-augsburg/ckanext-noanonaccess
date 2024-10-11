@@ -164,4 +164,4 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
                 break
 
         if is_anonoumous_user and restricted_access:
-            return tk.redirect_to("user.sso", came_from=current_path)
+            return tk.redirect_to("https://ckan-udpkatalog-dev.apps.capk.muenchen.de/user/sso", came_from=current_path)
