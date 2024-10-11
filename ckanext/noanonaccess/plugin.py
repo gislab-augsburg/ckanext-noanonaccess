@@ -166,7 +166,7 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
         
         if is_anonoumous_user and restricted_access:
             h.flash_error("Debug current path: " + current_path)
-            if current_path = "/user/logged_out":
+            if current_path == "/user/logged_out":
                 return tk.redirect_to("user.login", came_from=current_path)
             else:
                 return tk.redirect_to("https://ckan-udpkatalog-dev.apps.capk.muenchen.de/user/sso", came_from=current_path)
