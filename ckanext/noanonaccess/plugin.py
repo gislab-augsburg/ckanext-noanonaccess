@@ -150,6 +150,14 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
         if allowed_blueprints_in_env:
             allowed_blueprint.extend(allowed_blueprints_in_env.split(" "))
 
+        # restrict default allowed blueprints like specified in the environment variable
+        restricted_blueprints_in_env = config.get(
+            "ckanext.noanonaccess.restricted_blueprint", []
+        )
+        if restricted_blueprints_in_env:
+            for restricted_blueprint in restricted_blueprints_in_env.split(" "):
+                allowed_blueprint.remove(restricted_blueprint)  
+
         # allow if current blueprint is in allowed blueprint route
         restricted_access = not (current_blueprint in allowed_blueprint)
 
