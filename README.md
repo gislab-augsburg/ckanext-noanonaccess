@@ -33,11 +33,12 @@ To install ckanext-noanonaccess:
 --------------------
 Configuration Options
 --------------------
-You can also specify allowed page URLs in blueprints by using either the blueprint's name or path URL in regex format, separated by spaces. Also you can restrict some of the blueprints that are allowed by default.
+You can also specify allowed page URLs in blueprints by using either the blueprint's name or path URL in regex format, separated by spaces. Also you can restrict some of the blueprints or path URLs that are allowed by default.
 
     ckanext.noanonaccess.allowed_blueprint = feeds.general feeds.group
     ckanext.noanonaccess.allowed_paths = /about/.* /oauth2/callback
-    ckanext.noanonaccess.restricted_blueprints = user.login user.register
+    ckanext.noanonaccess.restricted_blueprint = user.login user.register
+    ckanext.noanonaccess.restricted_paths = /user/login /user/register
 
 And you can specify the path anonymous users will be redirected to if trying to access restricted paths. Default is ``user.login`` for the standard login page. A custom redirect path can be used for other login methods like single sign on, e.g. with [ckanext-keycloak](https://github.com/keitaroinc/ckanext-keycloak).
 

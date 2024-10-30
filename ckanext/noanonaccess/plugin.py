@@ -170,6 +170,16 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
             if re.match(path, current_path):
                 restricted_access = False
                 break
+        
+        # restrict regex path list specified in the environment variable
+        restricted_paths = config.get("ckanext.noanonaccess.restricted_paths", [])
+        if restricted_paths:
+            restricted_paths = restricted_paths.split(" ")
+
+        for path in restricted_paths:
+            if re.match(path, current_path):
+                restricted_access = True
+                break
 
         # allowed redirect path specified in the environment variable
         redirect_path_config = config.get("ckanext.noanonaccess.redirect_path", None)
