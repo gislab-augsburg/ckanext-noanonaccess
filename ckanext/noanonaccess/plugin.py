@@ -164,9 +164,12 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
                 break
 
         # allowed redirect path specified in the environment variable
-        redirect_path = config.get("ckanext.noanonaccess.redirect_path", None)
-        if not redirect_path:
+        redirect_path_config = config.get("ckanext.noanonaccess.redirect_path", None)
+        if not redirect_path_config:
             redirect_path = "user.login"
+        else:
+            site_url = config.get("ckan.site_url")
+            redirect_path = site_url + redirect_path_config
 
         if is_anonoumous_user and restricted_access:
             return tk.redirect_to(redirect_path, came_from=current_path)

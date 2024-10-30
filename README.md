@@ -40,7 +40,7 @@ You can also specify allowed page URLs in blueprints by using either the bluepri
 
 And you can specify the path anonymous users will be redirected to if trying to access restricted paths. Default is ``user.login`` for the standard login page. A custom redirect path can be used for other login methods like single sign on, e.g. with [ckanext-keycloak](https://github.com/keitaroinc/ckanext-keycloak).
 
-    ckanext.noanonaccess.redirect_path = user.sso
+    ckanext.noanonaccess.redirect_path = /user/sso
 
 ------------------------
 Development Installation
