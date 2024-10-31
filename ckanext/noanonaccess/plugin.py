@@ -54,10 +54,10 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
             # block acces for all users
             if blocked_access:
                 return tk.redirect_to(redirect_path, came_from=current_path)
-
-        else:
+            
             return
 
+        # if anonymous user then apply restrictions
         current_path = tk.request.path
 
         def _get_blueprint_and_view_function():
