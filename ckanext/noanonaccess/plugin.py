@@ -162,14 +162,30 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
             if re.match(path, current_path):
                 restricted_access = False
                 break
+        
+        # block regex path list specified in the environment variable
+        blocked_access = False
+        blocked_paths = config.get("ckanext.noanonaccess.blocked_paths", [])
+        if blocked_paths:
+            blocked_paths = blocked_paths.split(" ")
 
-        # allowed redirect path specified in the environment variable
-        redirect_path_config = config.get("ckanext.noanonaccess.redirect_path", None)
+        for path in blocked_paths:
+            if re.match(path, current_path):
+                blocked_access = True
+                break
+        
+        # set redirect path specified in the environment variable
+        redirect_path_config = config.get("ckanext.noanonaccess.redirect_path", [])
         if not redirect_path_config:
             redirect_path = "user.login"
         else:
             site_url = config.get("ckan.site_url")
             redirect_path = site_url + redirect_path_config
 
+        # restrict access for anonymous user
         if is_anonoumous_user and restricted_access:
+            return tk.redirect_to(redirect_path, came_from=current_path)
+        
+        # block acces for all users
+        if blocked_access:
             return tk.redirect_to(redirect_path, came_from=current_path)

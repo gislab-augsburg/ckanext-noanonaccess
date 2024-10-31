@@ -38,9 +38,13 @@ You can also specify allowed page URLs in blueprints by using either the bluepri
     ckanext.noanonaccess.allowed_blueprint = feeds.general feeds.group
     ckanext.noanonaccess.allowed_paths = /about/.* /oauth2/callback
 
-And you can specify the path anonymous users will be redirected to if trying to access restricted paths. Default is ``user.login`` for the standard login page. A custom redirect path can be used for other login methods like single sign on, e.g. with [ckanext-keycloak](https://github.com/keitaroinc/ckanext-keycloak).
+And you can specify the path anonymous users will be redirected to if trying to access restricted paths. Default is blueprint ``user.login`` for the standard login page. A custom redirect path can be used for other login methods like single sign on, e.g. with [ckanext-keycloak](https://github.com/keitaroinc/ckanext-keycloak).
 
     ckanext.noanonaccess.redirect_path = /user/sso
+
+Additionally you have the option to block paths for all users. This is useful e.g. if you use a different login method and want to prevent standard login, registering etc. If blocked, a user will be redirected to the redirect path.
+
+    ckanext.noanonaccess.blocked_paths = /user/login /user/register /user/reset/*
 
 ------------------------
 Development Installation
