@@ -168,9 +168,13 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
         blocked_paths = config.get("ckanext.noanonaccess.blocked_paths", [])
         if blocked_paths:
             blocked_paths = blocked_paths.split(" ")
+            log.info('blocked_paths')
+            log.info(blocked_paths)
 
         for path in blocked_paths:
             if re.match(path, current_path):
+                log.info('blocked_path, current_path')
+                log.info(path, current_path)
                 blocked_access = True
                 break
         
@@ -187,5 +191,7 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
             return tk.redirect_to(redirect_path, came_from=current_path)
         
         # block acces for all users
+        log.info('current_path, blocked_access')
+        log.info(current_path, blocked_access)
         if blocked_access:
             return tk.redirect_to(redirect_path, came_from=current_path)
