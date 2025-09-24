@@ -6,13 +6,13 @@ import ckan.plugins as plugins
 from ckan.plugins import toolkit as tk
 from ckan.plugins.toolkit import config
 
-# NEW: helpers to build URLs correctly when redirect_path is a path/absolute URL
+# helpers to build URLs correctly when redirect_path is a path/absolute URL
 from urllib.parse import urlparse, urlunparse, urlencode, parse_qsl
 
 log = logging.getLogger(__name__)
 
 # endpoints we never want to echo back into came_from (prevents loops)
-_AUTH_BAD_PATHS = (
+_DEFAULT_DISALLOW_PATHS = (
     '/user/sso',
     '/user/sso_login',
     '/user/login',
@@ -48,10 +48,10 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
             current_path = tk.request.path
             redirect_path_config = config.get("ckanext.noanonaccess.redirect_path", [])
             if not redirect_path_config:
-                redirect_path = "user.login"
+                redirect_path = "user.login"  # route name
             else:
                 site_url = config.get("ckan.site_url")
-                redirect_path = site_url + redirect_path_config
+                redirect_path = site_url + redirect_path_config  # absolute URL
 
             # block regex path list specified in the environment variable
             blocked_access = False
@@ -66,23 +66,7 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
 
             # block access for all users
             if blocked_access:
-                # ---- send FULL original URL (not just path) & avoid loops ----
-                original_url = tk.request.url  # includes query string
-                if any((tk.request.path or '').startswith(bp) for bp in _AUTH_BAD_PATHS):
-                    original_url = (config.get('ckan.site_url') or '/')
-
-                # Build redirect URL correctly whether redirect_path is route name, path or absolute URL
-                if redirect_path.startswith('http://') or redirect_path.startswith('https://') or redirect_path.startswith('/'):
-                    u = urlparse(redirect_path)
-                    q = dict(parse_qsl(u.query))
-                    q['came_from'] = original_url
-                    new = u._replace(query=urlencode(q, doseq=True))
-                    location = urlunparse(new)
-                    return tk.redirect_to(location)
-                else:
-                    # route name
-                    return tk.redirect_to(tk.url_for(redirect_path, came_from=original_url))
-                # ----------------------------------------------------------------------
+                return self._redirect_with_optional_came_from(redirect_path)
 
             return
 
@@ -223,25 +207,58 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
         # set redirect path specified in the environment variable
         redirect_path_config = config.get("ckanext.noanonaccess.redirect_path", [])
         if not redirect_path_config:
-            redirect_path = "user.login"
+            redirect_path = "user.login"  # route name
         else:
             site_url = config.get("ckan.site_url")
-            redirect_path = site_url + redirect_path_config
+            redirect_path = site_url + redirect_path_config  # absolute URL
 
         # restrict access for anonymous user
         if is_anonoumous_user and restricted_access:
-            # ---- send FULL original URL (not just path) & avoid loops ----
-            original_url = tk.request.url  # includes query string
-            if any((tk.request.path or '').startswith(bp) for bp in _AUTH_BAD_PATHS):
-                original_url = (config.get('ckan.site_url') or '/')
+            return self._redirect_with_optional_came_from(redirect_path)
 
-            if redirect_path.startswith('http://') or redirect_path.startswith('https://') or redirect_path.startswith('/'):
-                u = urlparse(redirect_path)
-                q = dict(parse_qsl(u.query))
-                q['came_from'] = original_url
-                new = u._replace(query=urlencode(q, doseq=True))
-                location = urlunparse(new)
-                return tk.redirect_to(location)
-            else:
-                return tk.redirect_to(tk.url_for(redirect_path, came_from=original_url))
-            # ----------------------------------------------------------------------
+    # ------------------- helpers -------------------
+
+    def _redirect_with_optional_came_from(self, redirect_path: str):
+        """
+        Build the redirect response. If configured, append a 'came_from' (or custom name)
+        parameter with the original URL (or path), with loop protection.
+        """
+        # Config flags (defaults preserve original behavior)
+        append = tk.asbool(config.get('ckanext.noanonaccess.append_came_from', False))
+        param = config.get('ckanext.noanonaccess.came_from_param', 'came_from')
+        full = tk.asbool(config.get('ckanext.noanonaccess.came_from_full_url', True))
+
+        # disallow list: space or comma separated
+        raw_disallow = config.get('ckanext.noanonaccess.came_from_disallow_paths', '')
+        if raw_disallow.strip():
+            disallow = tuple(raw_disallow.replace(',', ' ').split())
+        else:
+            disallow = _DEFAULT_DISALLOW_PATHS
+
+        original_url = tk.request.url if full else (tk.request.path or '/')
+        if any((tk.request.path or '').startswith(bp) for bp in disallow):
+            original_url = (config.get('ckan.site_url') or '/')
+
+        if not append:
+            # legacy behavior: do not add came_from
+            return self._plain_redirect(redirect_path)
+
+        # append came_from
+        if redirect_path.startswith(('http://', 'https://', '/')):
+            u = urlparse(redirect_path)
+            q = dict(parse_qsl(u.query))
+            q[param] = original_url
+            new = u._replace(query=urlencode(q, doseq=True))
+            location = urlunparse(new)
+            return tk.redirect_to(location)
+        else:
+            # route name
+            return tk.redirect_to(tk.url_for(redirect_path, **{param: original_url}))
+
+    @staticmethod
+    def _plain_redirect(redirect_path: str):
+        """Redirect without any came_from parameter."""
+        if redirect_path.startswith(('http://', 'https://', '/')):
+            return tk.redirect_to(redirect_path)
+        else:
+            return tk.redirect_to(tk.url_for(redirect_path))

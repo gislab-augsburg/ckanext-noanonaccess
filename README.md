@@ -46,6 +46,23 @@ Additionally you have the option to block paths for all users. This is useful e.
 
     ckanext.noanonaccess.blocked_paths = /user/login /user/register /user/reset/*
 
+### (Optional) Forward the original URL to the login/SSO entry as `came_from`
+
+By default this extension just redirects to the configured login path.  
+To **opt in** to forwarding the first requested URL (so SSO can send the user back), enable:
+
+    # enable feature (default: false)
+    ckanext.noanonaccess.append_came_from = true
+
+Behavior and safety (with defaults shown):
+
+    # Include full absolute URL (scheme+host+path+query) vs only the path
+    ckanext.noanonaccess.came_from_full_url = true
+    # Name of the query parameter to use
+    ckanext.noanonaccess.came_from_param = came_from
+    # Do not forward these paths to avoid loops
+    ckanext.noanonaccess.came_from_disallow_paths = /user/sso /user/sso_login /user/login /user/_logout /user/logged_out /user/logged_out_redirect /user/reset /user/locked
+
 ------------------------
 Development Installation
 ------------------------
