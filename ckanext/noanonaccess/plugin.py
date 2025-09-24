@@ -1,6 +1,4 @@
-
 import logging
-
 import re
 from flask import current_app
 
@@ -9,6 +7,19 @@ from ckan.plugins import toolkit as tk
 from ckan.plugins.toolkit import config
 
 log = logging.getLogger(__name__)
+
+
+# endpoints we never want to echo back into came_from (prevents loops)
+_AUTH_BAD_PATHS = (
+    '/user/sso',
+    '/user/sso_login',
+    '/user/login',
+    '/user/_logout',
+    '/user/logged_out',
+    '/user/logged_out_redirect',
+    '/user/reset',
+    '/user/locked',
+)
 
 
 class NoanonaccessPlugin(plugins.SingletonPlugin):
@@ -51,9 +62,14 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
                     blocked_access = True
                     break
 
-            # block acces for all users
+            # block access for all users
             if blocked_access:
-                return tk.redirect_to(redirect_path, came_from=current_path)
+                # ---- changed: send FULL original URL (not just path) & avoid loops ----
+                original_url = tk.request.url  # includes query string
+                if any((tk.request.path or '').startswith(bp) for bp in _AUTH_BAD_PATHS):
+                    original_url = (config.get('ckan.site_url') or '/')
+                return tk.redirect_to(redirect_path, came_from=original_url)
+                # ----------------------------------------------------------------------
             
             return
 
@@ -201,5 +217,9 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
 
         # restrict access for anonymous user
         if is_anonoumous_user and restricted_access:
-            return tk.redirect_to(redirect_path, came_from=current_path)
-        
+            # ---- changed: send FULL original URL (not just path) & avoid loops ----
+            original_url = tk.request.url  # includes query string
+            if any((tk.request.path or '').startswith(bp) for bp in _AUTH_BAD_PATHS):
+                original_url = (config.get('ckan.site_url') or '/')
+            return tk.redirect_to(redirect_path, came_from=original_url)
+            # ----------------------------------------------------------------------
