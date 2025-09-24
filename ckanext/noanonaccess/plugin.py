@@ -6,8 +6,10 @@ import ckan.plugins as plugins
 from ckan.plugins import toolkit as tk
 from ckan.plugins.toolkit import config
 
-log = logging.getLogger(__name__)
+# NEW: helpers to build URLs correctly when redirect_path is a path/absolute URL
+from urllib.parse import urlparse, urlunparse, urlencode, parse_qsl
 
+log = logging.getLogger(__name__)
 
 # endpoints we never want to echo back into came_from (prevents loops)
 _AUTH_BAD_PATHS = (
@@ -64,13 +66,24 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
 
             # block access for all users
             if blocked_access:
-                # ---- changed: send FULL original URL (not just path) & avoid loops ----
+                # ---- send FULL original URL (not just path) & avoid loops ----
                 original_url = tk.request.url  # includes query string
                 if any((tk.request.path or '').startswith(bp) for bp in _AUTH_BAD_PATHS):
                     original_url = (config.get('ckan.site_url') or '/')
-                return tk.redirect_to(redirect_path, came_from=original_url)
+
+                # Build redirect URL correctly whether redirect_path is route name, path or absolute URL
+                if redirect_path.startswith('http://') or redirect_path.startswith('https://') or redirect_path.startswith('/'):
+                    u = urlparse(redirect_path)
+                    q = dict(parse_qsl(u.query))
+                    q['came_from'] = original_url
+                    new = u._replace(query=urlencode(q, doseq=True))
+                    location = urlunparse(new)
+                    return tk.redirect_to(location)
+                else:
+                    # route name
+                    return tk.redirect_to(tk.url_for(redirect_path, came_from=original_url))
                 # ----------------------------------------------------------------------
-            
+
             return
 
         # if anonymous user then apply restrictions
@@ -206,7 +219,7 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
             if re.match(path, current_path):
                 restricted_access = False
                 break
-        
+
         # set redirect path specified in the environment variable
         redirect_path_config = config.get("ckanext.noanonaccess.redirect_path", [])
         if not redirect_path_config:
@@ -217,9 +230,18 @@ class NoanonaccessPlugin(plugins.SingletonPlugin):
 
         # restrict access for anonymous user
         if is_anonoumous_user and restricted_access:
-            # ---- changed: send FULL original URL (not just path) & avoid loops ----
+            # ---- send FULL original URL (not just path) & avoid loops ----
             original_url = tk.request.url  # includes query string
             if any((tk.request.path or '').startswith(bp) for bp in _AUTH_BAD_PATHS):
                 original_url = (config.get('ckan.site_url') or '/')
-            return tk.redirect_to(redirect_path, came_from=original_url)
+
+            if redirect_path.startswith('http://') or redirect_path.startswith('https://') or redirect_path.startswith('/'):
+                u = urlparse(redirect_path)
+                q = dict(parse_qsl(u.query))
+                q['came_from'] = original_url
+                new = u._replace(query=urlencode(q, doseq=True))
+                location = urlunparse(new)
+                return tk.redirect_to(location)
+            else:
+                return tk.redirect_to(tk.url_for(redirect_path, came_from=original_url))
             # ----------------------------------------------------------------------
